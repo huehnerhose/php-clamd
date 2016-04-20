@@ -1,0 +1,7 @@
+{
+    "name": "huehnerhose/php-clamd",
+    "require": {},
+    "autoload": {
+    	"files": ["src/clamd.php"]
+    }
+}
