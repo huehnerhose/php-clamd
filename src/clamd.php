@@ -51,6 +51,21 @@ abstract class ClamdBase {
             : false;
     }
 
+    /* `ready` is used to determine clamav is available, up and running */
+    public function ready(){
+        try {
+            $this->getSocket();
+        } catch (Exception $e) {
+            return false;
+        }
+
+        if( $this->version() !== FALSE ){
+            return true;
+        }
+
+        return false;
+    }
+
     /* `reload` Reload Clamd */
     public function reload() {
         return $this->sendCommand('RELOAD');

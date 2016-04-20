@@ -10,21 +10,28 @@ file_put_contents('good.txt', 'PHP');
 $clamd = new ClamdPipe();
 // $clamd = new ClamdNetwork();
 
-var_dump($clamd->ping());
-var_dump($clamd->version());
+$ready = $clamd->ready();
+var_dump($ready);
 
-var_dump($clamd->fileScan(getcwd() . '/evil.txt'));
-var_dump($clamd->fileScan(getcwd() . '/good.txt'));
+if($ready){
+	var_dump($clamd->ping());
+	var_dump($clamd->version());
 
-var_dump($clamd->continueScan(getcwd()));
+	var_dump($clamd->fileScan(getcwd() . '/evil.txt'));
+	var_dump($clamd->fileScan(getcwd() . '/good.txt'));
 
-var_dump($clamd->streamScan($EICAR_TEST));
-var_dump($clamd->streamScan('PHP'));
+	var_dump($clamd->continueScan(getcwd()));
 
-if( $clamd->streamScan($EICAR_TEST) != 'OK' ) { echo 'Infacted' . PHP_EOL; }
+	var_dump($clamd->streamScan($EICAR_TEST));
+	var_dump($clamd->streamScan('PHP'));
 
-// $clamd->reload();
-// $clamd->shutdown();
+	if( $clamd->streamScan($EICAR_TEST) != 'OK' ) { echo 'Infacted' . PHP_EOL; }
+
+	// $clamd->reload();
+	// $clamd->shutdown();
+
+}
+
 
 
 
