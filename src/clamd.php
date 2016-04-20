@@ -131,6 +131,25 @@ abstract class ClamdBase {
 
         return array('stats' => trim(str_replace('stream: ', '', $return)));
     }
+
+    /**
+     * Checks whether the given file is infected
+     * @param  pathString   $file           File to be checked
+     * @param  boolean      $forceCheck     Determines if infected check can silently fail.
+     *                                      e.g. when clamAV isn't available
+     *                                      Changes return behaviour
+     * @return boolean/Exceptions           returns true/false if $forceCheck is false (silent Fail)
+     *                                      returns true/false/null if $forceCheck is true (default)
+     */
+    public function infected($file, $forceCheck = true){
+        $fileScanResult = $this->fileScan( $file );
+        if( $fileScanResult === FALSE && $forceCheck ){
+            return null;
+        }
+
+        return $fileScanResult["stats"] === "OK";
+    }
+
 }
 
 /* This class can be used to connect to local socket, the default */
