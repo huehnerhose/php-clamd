@@ -17,30 +17,38 @@ $EICAR_TEST = 'X5O!P%@AP[4\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H
 
 /* An abstract class that `ClamdPipe` and `ClamdNetwork` will inherit. */
 abstract class ClamdBase {
-    
+
     abstract protected function getSocket();
 
     /* Send command to Clamd */
     private function sendCommand($command) {
         $return = null;
 
-        $socket = $this->getSocket();
+        try {
+            $socket = $this->getSocket();
+        } catch (Exception $e) {
+            return false;
+        }
+
         socket_send($socket, $command, strlen($command), 0);
         socket_recv($socket, $return, CLAMD_MAXP, 0);
         socket_close($socket);
 
         return $return;
     }
-    
+
     /* `ping` command is used to see whether Clamd is alive or not */
     public function ping() {
         $return = $this->sendCommand('PING');
-        return strcmp($return, 'PONG') ? true : false;
+        return strcmp($return, 'PONG') === 0 ? true : false;
     }
 
     /* `version` is used to receive the version of Clamd */
     public function version() {
-        return trim($this->sendCommand('VERSION'));
+        $result = $this->sendCommand('VERSION');
+        return $result !== FALSE
+            ? trim($result)
+            : false;
     }
 
     /* `reload` Reload Clamd */
@@ -55,30 +63,43 @@ abstract class ClamdBase {
 
     /* `fileScan` is used to scan single file. */
     public function fileScan($file) {
-        list($file, $stats) = explode(':', $this->sendCommand('SCAN ' .  $file));
+        $result = $this->sendCommand('SCAN ' .  $file);
+        if( $result === FALSE ){
+            return false;
+        }
 
+        list($file, $stats) = explode(':', $result);
         return array( 'file' => $file, 'stats' => trim($stats));
     }
 
-    /* `continueScan` is used to scan multiple files/directories.  */
+    /* `continueScan` is used to scan multiple file/directories.  */
     public function continueScan($file) {
         $return = array();
-        
-        foreach( explode("\n", trim($this->sendCommand('CONTSCAN ' .  $file))) as $results ) {
+
+        $result = $this->sendCommand('CONTSCAN ' .  $file);
+        if($result === FALSE){
+            return false;
+        }
+
+        foreach( explode("\n", trim($result)) as $results ) {
             list($file, $stats) = explode(':', $results);
             array_push($return, array( 'file' => $file, 'stats' => trim($stats) ));
         }
         return $return;
     }
-    
+
     /* `streamScan` is used to scan a buffer. */
     public function streamScan($buffer) {
         $port    = null;
         $socket  = null;
         $command = 'STREAM';
         $return  = null;
-  
-        $socket = $this->getSocket();
+
+        try {
+            $socket = $this->getSocket();
+        } catch (Exception $e) {
+            return false;
+        }
         socket_send($socket, $command, strlen($command), 0);
         socket_recv($socket, $return, CLAMD_MAXP, 0);
 
@@ -88,11 +109,11 @@ abstract class ClamdBase {
         socket_connect($stream, CLAMD_HOST, $port);
         socket_send($stream, $buffer, strlen($buffer), 0);
         socket_close($stream);
-        
+
         socket_recv($socket, $return, CLAMD_MAXP, 0);
 
         socket_close($socket);
-  
+
         return array('stats' => trim(str_replace('stream: ', '', $return)));
     }
 }
@@ -108,7 +129,21 @@ class ClamdPipe extends ClamdBase {
 
     protected function getSocket() {
         $socket = socket_create(AF_UNIX, SOCK_STREAM, 0);
-        socket_connect($socket, $this->pip);
+
+        if( !file_exists($this->pip) ){
+            $errorcode = socket_last_error();
+            $errormsg = socket_strerror($errorcode);
+            throw new Exception("ClamAV: Socket doesn't exist. ("+$errorcode+")["+$errormsg+"]");
+            return false;
+        }
+
+        if( !socket_connect($socket, $this->pip) ){
+            $errorcode = socket_last_error();
+            $errormsg = socket_strerror($errorcode);
+            throw new Exception("ClamAV: Socket connection error. ("+$errorcode+")["+$errormsg+"]");
+            return false;
+        }
+
         return $socket;
     }
 }
