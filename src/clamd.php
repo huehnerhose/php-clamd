@@ -147,7 +147,7 @@ abstract class ClamdBase {
             return null;
         }
 
-        return $fileScanResult["stats"] === "OK";
+        return $fileScanResult["stats"] !== "OK";
     }
 
 }
