@@ -11,10 +11,6 @@ define('CLAMD_HOST', '127.0.0.1');
 define('CLAMD_PORT', 3310);
 define('CLAMD_MAXP', 20000);
 
-/* EICAR is a simple test for AV scanners, see: https://en.wikipedia.org/wiki/EICAR_test_file */
-$EICAR_TEST = 'X5O!P%@AP[4\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*';
-
-
 /* An abstract class that `ClamdPipe` and `ClamdNetwork` will inherit. */
 abstract class ClamdBase {
 
@@ -104,7 +100,7 @@ abstract class ClamdBase {
     }
 
     /* `streamScan` is used to scan a buffer. */
-    public function streamScan($buffer) {
+    public function streamScan($fileStream, $size) {
         $port    = null;
         $socket  = null;
         $command = 'STREAM';
@@ -122,7 +118,8 @@ abstract class ClamdBase {
 
         $stream = socket_create(AF_INET, SOCK_STREAM, 0);
         socket_connect($stream, CLAMD_HOST, $port);
-        socket_send($stream, $buffer, strlen($buffer), 0);
+
+        socket_send($stream, fread($fileStream, $size), $size, 0);
         socket_close($stream);
 
         socket_recv($socket, $return, CLAMD_MAXP, 0);
@@ -130,6 +127,19 @@ abstract class ClamdBase {
         socket_close($socket);
 
         return array('stats' => trim(str_replace('stream: ', '', $return)));
+    }
+
+    public function infectedStreamByFilename($filename){
+        $filestream = fopen($filename, "r");
+        $size = filesize($filename);
+
+        $fileScanResult = $this->streamScan($filestream, $size);
+        if( $fileScanResult === FALSE && $forceCheck ){
+            return null;
+        }
+        fclose($filestream);
+        return $fileScanResult["stats"] !== "OK";
+
     }
 
     /**
@@ -141,7 +151,7 @@ abstract class ClamdBase {
      * @return boolean/Exceptions           returns true/false if $forceCheck is false (silent Fail)
      *                                      returns true/false/null if $forceCheck is true (default)
      */
-    public function infected($file, $forceCheck = true){
+    public function infectedFile($file, $forceCheck = true){
         $fileScanResult = $this->fileScan( $file );
         if( $fileScanResult === FALSE && $forceCheck ){
             return null;
