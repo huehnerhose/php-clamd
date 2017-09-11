@@ -177,14 +177,14 @@ class ClamdPipe extends ClamdBase {
         if( !file_exists($this->pip) ){
             $errorcode = socket_last_error();
             $errormsg = socket_strerror($errorcode);
-            throw new Exception("ClamAV: Socket doesn't exist. ("+$errorcode+")["+$errormsg+"]");
+            throw new Exception("ClamAV: Socket doesn't exist. (".$errorcode.")[".$errormsg."]");
             return false;
         }
 
         if( !socket_connect($socket, $this->pip) ){
             $errorcode = socket_last_error();
             $errormsg = socket_strerror($errorcode);
-            throw new Exception("ClamAV: Socket connection error. ("+$errorcode+")["+$errormsg+"]");
+            throw new Exception("ClamAV: Socket connection error. (".$errorcode.")[".$errormsg."]");
             return false;
         }
 
