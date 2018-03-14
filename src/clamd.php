@@ -206,7 +206,13 @@ class ClamdNetwork extends ClamdBase {
 
     protected function getSocket() {
         $socket = socket_create(AF_INET, SOCK_STREAM, 0);
-        socket_connect($socket, $this->host, $this->port);
+
+        $success = @socket_connect($socket, $this->host, $this->port);
+
+        if( !$success ){
+            throw new Exception('ClamAV: Connection Error ');
+        }
+
         return $socket;
     }
 }
